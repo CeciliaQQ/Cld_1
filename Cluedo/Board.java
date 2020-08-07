@@ -44,17 +44,24 @@ public class Board {
      * "Library", "Study", "Hall", "Lounge", "Dining Room"
      */
     private Room[] rooms;
-
+    /**
+     * "Candlestick", "Revolver", "Spanner", "Rope", "Dagger", "Lead Pipe"
+     */
+    private Weapon[] weapons;
     /**
      * Constructor
      * @param rooms 9 rooms in the game
      */
-    public Board(Room[] rooms) {
+    public Board(Room[] rooms, Weapon[] weapons) {
         this.rooms = rooms;
+        this.weapons = weapons;
         this.tiles = new Tile[25][24];
         generateTiles();
         generateLines();
+        assignRoomsToDoors();
+        placeWeapons();
     }
+
 
     /**
      * Move the person following input move direction.
@@ -90,6 +97,20 @@ public class Board {
         }else
             return false;
 
+    }
+
+    /**
+     * Teleport a person on the board
+     *
+     * @param player the player needed to be teleported
+     * @param door the door the player will be sent to
+     */
+    public void teleportPerson(Player player, Tile door){
+        Person person = player.getPerson();
+        int row = person.row;
+        int col = person.col;
+        tiles[row][col].setItem(null);
+        door.setItem(player.getPerson());
     }
 
     /**
@@ -208,37 +229,93 @@ public class Board {
                 else{
                     if(currentChar == 'K') {
                         tiles[i][j] = new RoomTile(rooms[0]);
+                        rooms[0].addRoomTile((RoomTile)tiles[i][j]);
                     }
                     if(currentChar == 'A') {
                         tiles[i][j] = new RoomTile(rooms[1]);
+                        rooms[1].addRoomTile((RoomTile)tiles[i][j]);
                     }
                     if(currentChar == 'C') {
                         tiles[i][j] = new RoomTile(rooms[2]);
+                        rooms[2].addRoomTile((RoomTile)tiles[i][j]);
                     }
                     if(currentChar == 'O') {
                         tiles[i][j] = new RoomTile(rooms[3]);
+                        rooms[3].addRoomTile((RoomTile)tiles[i][j]);
                     }
                     if(currentChar == 'L') {
                         tiles[i][j] = new RoomTile(rooms[4]);
+                        rooms[4].addRoomTile((RoomTile)tiles[i][j]);
                     }
                     if(currentChar == 'S') {
                         tiles[i][j] = new RoomTile(rooms[5]);
+                        rooms[5].addRoomTile((RoomTile)tiles[i][j]);
                     }
                     if(currentChar == 'X') {
                         tiles[i][j] = new RoomTile(rooms[6]);
+                        rooms[6].addRoomTile((RoomTile)tiles[i][j]);
                     }
                     if(currentChar == 'U') {
                         tiles[i][j] = new RoomTile(rooms[7]);
+                        rooms[7].addRoomTile((RoomTile)tiles[i][j]);
                     }
                     if(currentChar == 'I') {
                         tiles[i][j] = new RoomTile(rooms[8]);
+                        rooms[8].addRoomTile((RoomTile)tiles[i][j]);
                     }
-
-
                 }
                 index = index + 1;
             }
         }
+    }
+
+    /**
+     * Assign each door tile to a specific room
+     */
+    public void assignRoomsToDoors() {
+        for(int i = 0; i<25; i++) {
+            for(int j = 0; j <24; j++) {
+                if(tiles[i][j] instanceof DoorTile) {
+                    if(tiles[i][j+1] instanceof RoomTile) {
+                        ((DoorTile) tiles[i][j]).setRoom(((RoomTile) tiles[i][j+1]).getRoom());
+                        ((RoomTile)(tiles[i][j+1])).getRoom().removeTile(tiles[i][j+1]);
+                    }
+                    else if(tiles[i][j-1] instanceof RoomTile) {
+                        ((DoorTile) tiles[i][j]).setRoom(((RoomTile) tiles[i][j-1]).getRoom());
+                        ((RoomTile)tiles[i][j-1]).getRoom().removeTile(tiles[i][j+1]);
+                    }
+                    else if(tiles[i+1][j] instanceof RoomTile) {
+                        ((DoorTile) tiles[i][j]).setRoom(((RoomTile) tiles[i+1][j]).getRoom());
+                        ((RoomTile) tiles[i+1][j]).getRoom().removeTile(tiles[i][j+1]);
+                    }
+                    else if(tiles[i-1][j] instanceof RoomTile) {
+                        ((DoorTile) tiles[i][j]).setRoom(((RoomTile) tiles[i-1][j]).getRoom());
+                        ((RoomTile) tiles[i-1][j]).getRoom().removeTile(tiles[i][j+1]);
+                    }
+                }
+            }
+        }
+        ((DoorTile) tiles[13][20]).setRoom(((RoomTile) tiles[14][20]).getRoom());
+        ((DoorTile) tiles[13][22]).setRoom(((RoomTile) tiles[12][22]).getRoom());
+    }
+
+    /**
+     *
+     */
+    public void placeWeapons() {
+        List<Integer> usedRooms = new ArrayList<Integer>();
+    }
+
+    /**
+     * Get the room that a specific player is in
+     * @param player a specific player
+     * @return the room the player is in
+     */
+    public Room getRoom(Player player){
+        Person person = player.getPerson();
+        int row = person.row;
+        int col = person.col;
+        return ((RoomTile) tiles[row][col]).getRoom();
     }
 
     /**
@@ -265,7 +342,7 @@ public class Board {
                     }
                 }
 
-                arrayLine = arrayLine + tiles[i][j].toString(); //MUST IMPLEMENT TOSTRING IN TILE
+                arrayLine = arrayLine + tiles[i][j].toString(); //put a key to represent what is actually in the tile
 
                 if(j == 23) {
                     if(i > 0 && i < 9) {

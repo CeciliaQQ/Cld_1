@@ -2,6 +2,8 @@ package Cluedo;
 import Cluedo.Items.Person;
 import Cluedo.Items.Room;
 import Cluedo.Items.Weapon;
+import Cluedo.Tiles.DoorTile;
+
 import java.util.*;
 
 /**
@@ -154,7 +156,7 @@ public class Game {
         }
 
         // initialize a new board
-        board = new Board(rooms);
+        board = new Board(rooms, weapons);
         board.addPeople(people);
     }
 
@@ -166,33 +168,56 @@ public class Game {
      * When a player makes a correct accusation, stop running and return.
      */
     public void run(){
-        while(true){ // change this to game running
+        while(true){
             for(int i = 0; i < players.length; i++) {
 
-                int diceOne = (int) (Math.random() * 6) + 1;
-                int diceTwo = (int) (Math.random() * 6) + 1;
                 board.drawBoard();
                 System.out.println(players[i].getName() + "'s turn");
-                System.out.println("You rolled a " + diceOne + " and a " + diceTwo);
 
-                for(int j = diceOne + diceTwo; j >= 1; j--) {
-                    System.out.println("You have " + j + " moves remaining");
-                    String move = getMove();
-                    while(!board.movePerson(players[i], move)){
-                        System.out.println("You can't move in that direction");
-                        move = getMove();
+                if(board.inRoom(players[i])){
+                    if(askAccusation(i)) {
+                        if (makeAccusation(i)) return;
+                    }else{
+                        Room room = board.getRoom(players[i]);
+                        Map<Integer, DoorTile> doorTiles = room.getDoorTiles();
+                        System.out.print("What door would you like to exit from (integer between 1-" +
+                                doorTiles.size() + ")?");
+                        int doorNum = getNumber(doorTiles.size());
+                        board.teleportPerson(players[i], doorTiles.get(doorNum));
                     }
-                    board.drawBoard();
-                    if(board.inRoom(players[i])){
-                        System.out.print("Would you like to make a accusation or exit the room");
-                        if(getAnswer()) {
-                            if (makeAccusation(i)) return;
-                            else break;
+                }else {
+                    int diceOne = (int) (Math.random() * 6) + 1;
+                    int diceTwo = (int) (Math.random() * 6) + 1;
+                    System.out.println("You rolled a " + diceOne + " and a " + diceTwo);
+                    for (int j = diceOne + diceTwo; j >= 1; j--) {
+                        System.out.println("You have " + j + " moves remaining");
+                        String move = getMove();
+                        while (!board.movePerson(players[i], move)) {
+                            System.out.println("You can't move in that direction");
+                            move = getMove();
+                        }
+                        board.drawBoard();
+                        if (board.inRoom(players[i])) {
+                            if (askAccusation(i)) {
+                                if (makeAccusation(i)) return;
+                                else break;
+                            }
                         }
                     }
                 }
             }
         }
+    }
+
+    /**
+     * Ask the player if he wants to make an accusation
+     * @param playerNum the index of the player in the player list
+     * @return true if the player wants to make an accusation; otherwise return false.
+     */
+    public boolean askAccusation(int playerNum){
+        System.out.println("You are in the " + board.getRoom(players[playerNum]).getName());
+        System.out.print("Would you like to make an accusation? ");
+        return getAnswer();
     }
 
     /**
@@ -227,8 +252,8 @@ public class Game {
         Scanner scan = new Scanner(System.in);
         System.out.println("Make an accusation (refer to key for how to write an answer)");
         System.out.println("Here is your hand: " + players[playerNum].getHandString());
+        Card roomCard = cards.get(board.getRoom(players[playerNum]).getName());
         Card weaponCard = getCard("weapon", WEAPON_NAMES);
-        Card roomCard = getCard("room", ROOM_NAMES);
         Card personCard = getCard("character", CHARACTER_NAMES);
 
         for(int i = playerNum + 1; i != playerNum; i++){
@@ -277,6 +302,19 @@ public class Game {
     }
 
     /**
+     * Get a integer from the user.
+     *
+     * @return int between 1 and upper bound (inclusive).
+     */
+    public int getNumber(int upperBound){
+        Scanner scan = new Scanner(System.in);
+        while(!scan.hasNextInt()){
+            System.out.println("Please input an integer between 1 and " + "upper bound:");
+        }
+        return scan.nextInt();
+    }
+
+    /**
      * Get the card based on the type or the corresponding array.
      *
      * @param type weapon, room, or character
@@ -294,7 +332,7 @@ public class Game {
             System.out.print("Please enter a valid number (1 - " + names.length + "): ");
             num = scan.nextInt();
         }
-        return cards.get(names[num]);
+        return cards.get(names[num - 1]);
     }
 
     /**
